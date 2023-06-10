@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 //import { renderToString } from 'react-dom/server';
 import UserList from './UserList';
 import UserForm from './UserForm';
+import PaginationComponent from './pagination';
 //import UserListPDF from './UserListPDF';
+//import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
+
 
 function App() {
   const [users, setUsers] = useState([]);
@@ -15,6 +20,9 @@ function App() {
   const [newUser, setNewUser] = useState({ name: '', email: '' });
   const [selectedUser, setSelectedUser] = useState({});
   const [editUser, setEditUser] = useState({ name: '', email: '' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(5);
+
 
   // Function to fetch users from an API
   const fetchUsers = async () => {
@@ -87,9 +95,9 @@ function App() {
   const handleSubmit = (event) => {
     event.preventDefault();
     const { name, email } = newUser;
-    const newUserObj = {
+    const newUserObj = {  
       id: Date.now().toString(), // Generate a unique ID (for demonstration purposes only)
-      name,
+      name, 
       email,
     };
     setUsers((prevUsers) => [...prevUsers, newUserObj]);
@@ -130,75 +138,91 @@ function App() {
     setFilteredUsers(updatedUsers);
   };
 
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  return (
-    <div>
-      <h1>User Management System</h1>
+return (
+  <div>
+    <h1>User Management System</h1>
 
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : error ? (
-        <div>Error: {error}</div>
-      ) : (
+    {isLoading ? (
+      <div>Loading...</div>
+    ) : error ? (
+      <div>Error: {error}</div>
+    ) : (
+      <div>
+        <UserForm
+          newUser={newUser}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+        />
+
+        <h2>Users</h2>
         <div>
-          <UserForm
-            newUser={newUser}
-            handleInputChange={handleInputChange}
-            handleSubmit={handleSubmit}
+          <input
+            type="text"
+            placeholder="Search by name or email"
+            value={searchQuery}
+            onChange={handleSearchChange}
           />
-
-          <h2>Users</h2>
-          <div>
-            <input
-              type="text"
-              placeholder="Search by name or email"
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-            <button onClick={handleSort}>Sort By Name</button>
-          </div>
-         
-          <UserList
-            users={filteredUsers}
-            handleEdit={handleEdit}
+          <button onClick={handleSort}>Sort By Name</button>
+        </div>
+       
+        <UserList
+          users={currentUsers}
+          handleEdit={handleEdit}
             handleDelete={handleDelete}
             handleDownload={handleDownload}
-          />
+        />
 
-          {selectedUser.id && (
-            <div>
-              <h2>Edit User</h2>
-              <form>
-                <div>
-                  <label>Name:</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={editUser.name}
-                    onChange={handleEditInputChange}
-                  />
-                </div>
-                <div>
-                  <label>Email:</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={editUser.email}
-                    onChange={handleEditInputChange}
-                  />
-                </div>
-                <button onClick={handleUpdate}>Update User</button>
-                <button onClick={() => setSelectedUser({})}>Cancel</button>
-              </form>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+        <PaginationComponent
+          totalUsers={filteredUsers.length}
+          usersPerPage={usersPerPage}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
+
+        {selectedUser.id && (
+          <div>
+            <h2>Edit User</h2>
+            <form>
+              <div>
+                <label>Name:</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editUser.name}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <div>
+                <label>Email:</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={editUser.email}
+                  onChange={handleEditInputChange}
+                />
+              </div>
+              <button onClick={handleUpdate}>Update User</button>
+              <button onClick={() => setSelectedUser({})}>Cancel</button>
+            </form>
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+);
 }
+
 
 export default App;
